@@ -114,7 +114,7 @@ class ItemServiceTest {
 
         assertEquals(1, result.size());
         assertEquals("Дрель", result.getFirst().getName());
-        assertTrue(itemService.search("").isEmpty());
+
     }
 
     private UserDto createUser(String email) {

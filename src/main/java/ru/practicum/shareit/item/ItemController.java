@@ -14,7 +14,6 @@ import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.service.ItemService;
 import ru.practicum.shareit.validation.Create;
 import ru.practicum.shareit.validation.Update;
-
 import java.util.List;
 
 @RestController
@@ -55,6 +54,10 @@ public class ItemController {
     @GetMapping("/search")
     public List<ItemDto> search(@RequestHeader(USER_ID_HEADER) long userId,
                                 @RequestParam String text) {
+        if (text.isBlank()) {
+            return List.of();
+        }
+
         return itemService.search(text);
     }
 }

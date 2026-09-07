@@ -51,9 +51,6 @@ public class InMemoryItemStorage implements ItemStorage {
 
     @Override
     public synchronized List<Item> searchAvailable(String text) {
-        if (text == null || text.isBlank()) {
-            return List.of();
-        }
 
         String query = text.toLowerCase(Locale.ROOT);
 
