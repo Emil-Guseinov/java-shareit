@@ -1,13 +1,14 @@
 package ru.practicum.shareit;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+import ru.practicum.shareit.support.AbstractIntegrationTest;
 
-@SpringBootTest
-class ShareItTests {
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-	@Test
-	void contextLoads() {
-	}
-
+class ShareItTests extends AbstractIntegrationTest {
+    @Test
+    void contextLoads() {
+        assertNotNull(entityManager);
+        assertNotNull(mvc);
+    }
 }
