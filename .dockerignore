@@ -1,0 +1,8 @@
+.git
+.idea
+*.iml
+src
+tests
+docs
+postman
+scripts
