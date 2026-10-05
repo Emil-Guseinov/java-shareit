@@ -1,123 +1,126 @@
 package ru.practicum.shareit.item;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import ru.practicum.shareit.common.exception.ForbiddenException;
 import ru.practicum.shareit.common.exception.NotFoundException;
 import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.item.dto.ItemResponseDto;
+import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.service.ItemService;
-import ru.practicum.shareit.item.service.ItemServiceImpl;
-import ru.practicum.shareit.item.storage.InMemoryItemStorage;
-import ru.practicum.shareit.user.dto.UserDto;
-import ru.practicum.shareit.user.service.UserService;
-import ru.practicum.shareit.user.service.UserServiceImpl;
-import ru.practicum.shareit.user.storage.InMemoryUserStorage;
+import ru.practicum.shareit.support.AbstractIntegrationTest;
+import ru.practicum.shareit.user.User;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class ItemServiceTest {
-    private InMemoryUserStorage userStorage;
-    private UserService userService;
-    private ItemService itemService;
+class ItemServiceTest extends AbstractIntegrationTest {
+    @Autowired
+    private ItemService service;
 
-    @BeforeEach
-    void setUp() {
-        userStorage = new InMemoryUserStorage();
-        userService = new UserServiceImpl(userStorage);
-        itemService = new ItemServiceImpl(new InMemoryItemStorage(), userStorage);
+    @Test
+    void shouldCreateItemWithOwnerAndIgnoreClientId() {
+        User owner = user("Владелец");
+        ItemDto result = service.create(owner.getId(), new ItemDto(Long.MAX_VALUE, "Дрель", "Для бетона", true));
+        assertNotEquals(Long.MAX_VALUE, result.getId().longValue());
+        entityManager.clear();
+        Item stored = items.findById(result.getId()).orElseThrow();
+        assertEquals(owner.getId(), stored.getOwner().getId());
+        assertEquals("Дрель", service.getById(owner.getId(), result.getId()).getName());
     }
 
     @Test
-    void shouldCreateItemForExistingOwner() {
-        UserDto owner = createUser("owner@example.com");
-
-        ItemDto created = itemService.create(owner.getId(),
-                new ItemDto(null, "Дрель", "Ударная дрель", true));
-
-        assertEquals(1L, created.getId());
-        assertEquals("Дрель", created.getName());
-        assertTrue(created.getAvailable());
-    }
-
-    @Test
-    void shouldRejectItemForUnknownOwner() {
-        ItemDto item = new ItemDto(null, "Дрель", "Ударная дрель", true);
-
-        assertThrows(NotFoundException.class, () -> itemService.create(999, item));
-    }
-
-    @Test
-    void shouldPatchOnlyProvidedFieldsForOwner() {
-        UserDto owner = createUser("owner@example.com");
-        ItemDto created = itemService.create(owner.getId(),
-                new ItemDto(null, "Дрель", "Старое описание", true));
-        ItemDto patch = new ItemDto();
-
-        patch.setDescription("Новое описание");
-
-        ItemDto updated = itemService.update(owner.getId(), created.getId(), patch);
-
-        assertEquals("Дрель", updated.getName());
-        assertEquals("Новое описание", updated.getDescription());
-        assertTrue(updated.getAvailable());
-    }
-
-    @Test
-    void shouldRejectUpdateFromNonOwner() {
-        UserDto owner = createUser("owner@example.com");
-        UserDto anotherUser = createUser("other@example.com");
-        ItemDto created = itemService.create(owner.getId(),
-                new ItemDto(null, "Дрель", "Ударная дрель", true));
-
-        assertThrows(ForbiddenException.class,
-                () -> itemService.update(anotherUser.getId(), created.getId(), new ItemDto()));
-    }
-
-    @Test
-    void shouldRejectUpdateFromUnknownUser() {
-        UserDto owner = createUser("owner@example.com");
-        ItemDto created = itemService.create(owner.getId(),
-                new ItemDto(null, "Дрель", "Ударная дрель", true));
-
+    void shouldRejectUnknownOwnerOnCreate() {
         assertThrows(NotFoundException.class,
-                () -> itemService.update(999, created.getId(), new ItemDto()));
+                () -> service.create(Long.MAX_VALUE, new ItemDto(null, "Дрель", "Для бетона", true)));
     }
 
     @Test
-    void shouldReturnOnlyOwnersItems() {
-        UserDto owner = createUser("owner@example.com");
-        UserDto anotherOwner = createUser("other@example.com");
-        itemService.create(owner.getId(),
-                new ItemDto(null, "Дрель", "Первая", true));
-        itemService.create(anotherOwner.getId(),
-                new ItemDto(null, "Пила", "Вторая", true));
+    void shouldPatchNonNullFieldsAndPreserveOthers() {
+        User owner = user("Владелец");
+        Item stored = item(owner, "Дрель", true);
+        ItemDto updated = service.update(owner.getId(), stored.getId(), new ItemDto(null, "Пила", null, false));
+        assertEquals("Пила", updated.getName());
+        assertEquals(stored.getDescription(), updated.getDescription());
+        assertFalse(updated.getAvailable());
+        ItemDto next = service.update(owner.getId(), stored.getId(), new ItemDto(null, null, "Новое", null));
+        assertEquals("Пила", next.getName());
+        assertEquals("Новое", next.getDescription());
+        assertFalse(next.getAvailable());
+    }
 
-        List<ItemDto> result = itemService.getByOwner(owner.getId());
+    @Test
+    void shouldRejectAnotherUserOnUpdate() {
+        User owner = user("Владелец");
+        User other = user("Другой");
+        Item stored = item(owner, "Дрель", true);
+        assertThrows(ForbiddenException.class,
+                () -> service.update(other.getId(), stored.getId(), new ItemDto(null, "Пила", null, null)));
+    }
 
-        assertEquals(1, result.size());
-        assertEquals("Дрель", result.getFirst().getName());
+    @Test
+    void shouldRejectUnknownUserOnUpdate() {
+        Item stored = item(user("Владелец"), "Дрель", true);
+        assertThrows(NotFoundException.class,
+                () -> service.update(Long.MAX_VALUE, stored.getId(), new ItemDto(null, "Пила", null, null)));
+    }
+
+    @Test
+    void shouldRejectMissingItemOnUpdate() {
+        User owner = user("Владелец");
+        assertThrows(NotFoundException.class,
+                () -> service.update(owner.getId(), Long.MAX_VALUE, new ItemDto(null, "Пила", null, null)));
+    }
+
+    @Test
+    void shouldRejectMissingItemOnRead() {
+        assertThrows(NotFoundException.class, () -> service.getById(1L, Long.MAX_VALUE));
+    }
+
+    @Test
+    void shouldReturnOnlyOwnersItemsInIdOrder() {
+        User owner = user("Владелец");
+        Item first = item(owner, "Первая", true);
+        Item second = item(owner, "Вторая", false);
+        item(user("Другой"), "Чужая", true);
+        List<Long> result = service.getByOwner(owner.getId()).stream().map(ItemResponseDto::getId).toList();
+        assertEquals(List.of(first.getId(), second.getId()), result);
+    }
+
+    @Test
+    void shouldReturnEmptyListForOwnerWithoutItems() {
+        assertTrue(service.getByOwner(user("Владелец").getId()).isEmpty());
+    }
+
+    @Test
+    void shouldRejectMissingUserOnOwnerList() {
+        assertThrows(NotFoundException.class, () -> service.getByOwner(Long.MAX_VALUE));
     }
 
     @Test
     void shouldSearchOnlyAvailableItemsIgnoringCase() {
-        UserDto owner = createUser("owner@example.com");
-        itemService.create(owner.getId(),
-                new ItemDto(null, "Дрель", "Для БЕТОНА", true));
-        itemService.create(owner.getId(),
-                new ItemDto(null, "Пила", "Для бетона", false));
-
-        List<ItemDto> result = itemService.search("бетона");
-
+        User owner = user("Владелец");
+        service.create(owner.getId(), new ItemDto(null, "Дрель", "Для БЕТОНА", true));
+        service.create(owner.getId(), new ItemDto(null, "Пила", "Для бетона", false));
+        List<ItemDto> result = service.search("бетона");
         assertEquals(1, result.size());
         assertEquals("Дрель", result.getFirst().getName());
-
+        assertEquals(1, service.search("ДРЕЛЬ").size());
+        assertTrue(service.search("Не существующее описание").isEmpty());
     }
 
-    private UserDto createUser(String email) {
-        return userService.create(new UserDto(null, "User", email));
+    @Test
+    void shouldSearchPercentAndUnderscoreAsLiteralCharacters() {
+        User owner = user("Владелец");
+        item(owner, "Точность 100%", true);
+        item(owner, "Модель_1", true);
+        item(owner, "Обычная вещь", true);
+        assertEquals(1, service.search("%").size());
+        assertEquals(1, service.search("_").size());
     }
 }

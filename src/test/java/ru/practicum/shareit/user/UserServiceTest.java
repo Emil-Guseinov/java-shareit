@@ -1,74 +1,101 @@
 package ru.practicum.shareit.user;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import ru.practicum.shareit.common.exception.ConflictException;
 import ru.practicum.shareit.common.exception.NotFoundException;
+import ru.practicum.shareit.support.AbstractIntegrationTest;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.service.UserService;
-import ru.practicum.shareit.user.service.UserServiceImpl;
-import ru.practicum.shareit.user.storage.InMemoryUserStorage;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class UserServiceTest {
-    private UserService userService;
-
-    @BeforeEach
-    void setUp() {
-        userService = new UserServiceImpl(new InMemoryUserStorage());
-    }
+class UserServiceTest extends AbstractIntegrationTest {
+    @Autowired
+    private UserService service;
 
     @Test
-    void shouldCreateAndGetUser() {
-        UserDto created = userService.create(new UserDto(null, "Alex", "alex@example.com"));
-        UserDto loaded = userService.getById(created.getId());
-
-        assertEquals(1L, created.getId());
-        assertEquals(created.getId(), loaded.getId());
-        assertEquals("Alex", loaded.getName());
-        assertEquals("alex@example.com", loaded.getEmail());
-    }
-
-    @Test
-    void shouldUpdateOnlyProvidedFields() {
-        UserDto created = userService.create(new UserDto(null, "Alex", "alex@example.com"));
-        UserDto patch = new UserDto();
-
-        patch.setName("Alexander");
-
-        UserDto updated = userService.update(created.getId(), patch);
-
-        assertEquals("Alexander", updated.getName());
-        assertEquals("alex@example.com", updated.getEmail());
+    void shouldCreateUserAndIgnoreClientId() {
+        UserDto result = service.create(new UserDto(Long.MAX_VALUE, "Эмиль", "emil@example.com"));
+        assertNotNull(result.getId());
+        assertNotEquals(Long.MAX_VALUE, result.getId().longValue());
+        entityManager.clear();
+        assertEquals("Эмиль", service.getById(result.getId()).getName());
+        assertEquals("emil@example.com", service.getById(result.getId()).getEmail());
     }
 
     @Test
     void shouldRejectDuplicateEmail() {
-        userService.create(new UserDto(null, "Alex", "alex@example.com"));
-
+        User existing = user("Первый");
         assertThrows(ConflictException.class,
-                () -> userService.create(new UserDto(null, "Bob", "alex@example.com")));
+                () -> service.create(new UserDto(null, "Второй", existing.getEmail())));
     }
 
     @Test
-    void shouldRejectDuplicateEmailOnUpdate() {
-        userService.create(new UserDto(null, "Alex", "alex@example.com"));
-        UserDto bob = userService.create(new UserDto(null, "Bob", "bob@example.com"));
-        UserDto patch = new UserDto();
-
-        patch.setEmail("alex@example.com");
-
-        assertThrows(ConflictException.class, () -> userService.update(bob.getId(), patch));
+    void shouldKeepMissingFieldsOnPatch() {
+        User existing = user("Первый");
+        UserDto updated = service.update(existing.getId(), new UserDto(null, "Новое имя", null));
+        assertEquals("Новое имя", updated.getName());
+        assertEquals(existing.getEmail(), updated.getEmail());
     }
 
     @Test
-    void shouldDeleteUser() {
-        UserDto created = userService.create(new UserDto(null, "Alex", "alex@example.com"));
+    void shouldChangeEmailWithoutChangingName() {
+        User existing = user("Первый");
+        UserDto updated = service.update(existing.getId(), new UserDto(null, null, "new@example.com"));
+        assertEquals("Первый", updated.getName());
+        assertEquals("new@example.com", updated.getEmail());
+        entityManager.clear();
+        assertEquals("new@example.com", service.getById(existing.getId()).getEmail());
+    }
 
-        userService.delete(created.getId());
+    @Test
+    void shouldAllowUnchangedEmail() {
+        User existing = user("Первый");
+        UserDto result = service.update(existing.getId(), new UserDto(null, null, existing.getEmail()));
+        assertEquals(existing.getEmail(), result.getEmail());
+    }
 
-        assertThrows(NotFoundException.class, () -> userService.getById(created.getId()));
+    @Test
+    void shouldRejectEmailBelongingToAnotherUser() {
+        User first = user("Первый");
+        User second = user("Второй");
+        assertThrows(ConflictException.class,
+                () -> service.update(first.getId(), new UserDto(null, null, second.getEmail())));
+    }
+
+    @Test
+    void shouldListUsersByIdAndDeleteUser() {
+        User first = user("Первый");
+        User second = user("Второй");
+        List<Long> ids = service.getAll().stream().map(UserDto::getId).toList();
+        assertTrue(ids.indexOf(first.getId()) < ids.indexOf(second.getId()));
+        service.delete(first.getId());
+        entityManager.clear();
+        assertFalse(users.existsById(first.getId()));
+        assertTrue(users.existsById(second.getId()));
+    }
+
+    @Test
+    void shouldRejectUnknownUserOnRead() {
+        assertThrows(NotFoundException.class, () -> service.getById(Long.MAX_VALUE));
+    }
+
+    @Test
+    void shouldRejectUnknownUserOnUpdate() {
+        assertThrows(NotFoundException.class,
+                () -> service.update(Long.MAX_VALUE, new UserDto(null, "Имя", null)));
+    }
+
+    @Test
+    void shouldRejectUnknownUserOnDelete() {
+        assertThrows(NotFoundException.class, () -> service.delete(Long.MAX_VALUE));
     }
 }

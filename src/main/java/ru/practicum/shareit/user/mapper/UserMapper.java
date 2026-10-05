@@ -12,6 +12,6 @@ public final class UserMapper {
     }
 
     public static User toModel(UserDto userDto) {
-        return new User(userDto.getId(), userDto.getName(), userDto.getEmail());
+        return new User(null, userDto.getName(), userDto.getEmail());
     }
 }

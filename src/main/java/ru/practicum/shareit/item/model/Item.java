@@ -1,47 +1,47 @@
 package ru.practicum.shareit.item.model;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import ru.practicum.shareit.request.ItemRequest;
 import ru.practicum.shareit.user.User;
 
+@Entity
+@Table(name = "items")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class Item {
-    private final Long id;
-    private final String name;
-    private final String description;
-    private final Boolean available;
-    private final User owner;
-    private final ItemRequest request;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    public Item(Long id, String name, String description, Boolean available,
-                User owner, ItemRequest request) {
-        this.id = id;
-        this.name = name;
-        this.description = description;
-        this.available = available;
-        this.owner = owner;
-        this.request = request;
-    }
+    @Column(nullable = false, length = 255)
+    private String name;
 
-    public Long getId() {
-        return id;
-    }
+    @Column(nullable = false, length = 2000)
+    private String description;
 
-    public String getName() {
-        return name;
-    }
+    @Column(nullable = false)
+    private Boolean available;
 
-    public String getDescription() {
-        return description;
-    }
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "owner_id", nullable = false)
+    private User owner;
 
-    public Boolean getAvailable() {
-        return available;
-    }
-
-    public User getOwner() {
-        return owner;
-    }
-
-    public ItemRequest getRequest() {
-        return request;
-    }
+    // Запросы вещей относятся к следующему спринту; связь пока не сохраняется в БД.
+    @Transient
+    private ItemRequest request;
 }
