@@ -11,6 +11,7 @@ import ru.practicum.shareit.common.exception.BadRequestException;
 import ru.practicum.shareit.common.exception.NotFoundException;
 import ru.practicum.shareit.item.dto.CommentRequestDto;
 import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.item.dto.ItemRequestDto;
 import ru.practicum.shareit.item.dto.ItemResponseDto;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.repository.CommentRepository;
@@ -59,7 +60,7 @@ class ItemServiceUnitTest {
     }
 
     @Test
-    void linksReplyToExistingRequestAndIgnoresClientId() {
+    void linksReplyToExistingRequestAndGeneratesId() {
         ItemRequest request = new ItemRequest(3L, "Запрос", owner, LocalDateTime.now(clock));
         when(users.findById(1L)).thenReturn(Optional.of(owner));
         when(requests.findById(3L)).thenReturn(Optional.of(request));
@@ -71,13 +72,13 @@ class ItemServiceUnitTest {
             item.setId(2L);
             return item;
         });
-        assertEquals(3L, service.create(1L, new ItemDto(99L, "Дрель", "Описание", true, 3L)).getRequestId());
+        assertEquals(3L, service.create(1L, new ItemRequestDto("Дрель", "Описание", true, 3L)).getRequestId());
     }
 
     @Test
     void missingRequestPreventsItemSave() {
         when(users.findById(1L)).thenReturn(Optional.of(owner));
-        assertThrows(NotFoundException.class, () -> service.create(1L, new ItemDto(null, "Дрель", "Описание", true, 3L)));
+        assertThrows(NotFoundException.class, () -> service.create(1L, new ItemRequestDto("Дрель", "Описание", true, 3L)));
         verifyNoInteractions(items);
     }
 
@@ -86,7 +87,7 @@ class ItemServiceUnitTest {
         Item item = new Item(2L, "Дрель", "Описание", true, owner, null);
         when(users.existsById(1L)).thenReturn(true);
         when(items.findLockedById(2L)).thenReturn(Optional.of(item));
-        ItemDto result = service.update(1L, 2L, new ItemDto(null, null, null, false));
+        ItemDto result = service.update(1L, 2L, new ItemRequestDto(null, null, false));
         assertFalse(result.getAvailable());
         assertEquals("Дрель", result.getName());
         assertEquals("Описание", result.getDescription());

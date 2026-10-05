@@ -4,19 +4,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.MissingRequestHeaderException;
-import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
-
-import java.util.stream.Collectors;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 @Slf4j
 @RestControllerAdvice
-public class ErrorHandler {
+public class ErrorHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<ErrorResponse> handleNotFound(NotFoundException exception) {
         log.warn("Resource not found: {}", exception.getMessage());
@@ -41,23 +35,6 @@ public class ErrorHandler {
         return response(HttpStatus.BAD_REQUEST, exception.getMessage());
     }
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException exception) {
-        String message = exception.getBindingResult().getFieldErrors().stream()
-                .map(error -> error.getField() + ": " + error.getDefaultMessage())
-                .sorted()
-                .collect(Collectors.joining("; "));
-        log.warn("Validation error: {}", message);
-        return response(HttpStatus.BAD_REQUEST, message);
-    }
-
-    @ExceptionHandler({MissingRequestHeaderException.class, MissingServletRequestParameterException.class,
-            MethodArgumentTypeMismatchException.class, HttpMessageNotReadableException.class})
-    public ResponseEntity<ErrorResponse> handleMalformedRequest(Exception exception) {
-        log.warn("Malformed request: {}", exception.getMessage());
-        return response(HttpStatus.BAD_REQUEST, "Некорректные параметры или тело запроса");
-    }
-
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse> handleDataConflict(DataIntegrityViolationException exception) {
         log.warn("Data integrity violation: {}", exception.getMessage());
@@ -66,11 +43,6 @@ public class ErrorHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleUnexpected(Exception exception) {
-        if (exception instanceof org.springframework.web.ErrorResponse error) {
-            log.warn("HTTP error: {}", exception.getClass().getSimpleName());
-            return ResponseEntity.status(error.getStatusCode()).headers(error.getHeaders())
-                    .body(new ErrorResponse("Некорректный HTTP-запрос"));
-        }
         log.error("Unexpected server error", exception);
 
         return response(

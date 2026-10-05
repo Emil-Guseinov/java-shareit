@@ -10,27 +10,29 @@ import java.util.Map;
 
 @Service
 public class BookingClient extends BaseClient {
+    private static final String API_PREFIX = "/bookings";
+
     public BookingClient(RestTemplate rest) {
         super(rest);
     }
 
-    public ResponseEntity<byte[]> create(long userId, BookingRequestDto dto) {
-        return post("/bookings", userId, dto);
+    public ResponseEntity<Object> create(long userId, BookingRequestDto dto) {
+        return post(API_PREFIX, userId, dto);
     }
 
-    public ResponseEntity<byte[]> approve(long userId, long id, boolean approved) {
-        return patch("/bookings/" + id + "?approved={approved}", userId, Map.of("approved", approved), null);
+    public ResponseEntity<Object> approve(long userId, long id, boolean approved) {
+        return patch(API_PREFIX + "/" + id + "?approved={approved}", userId, Map.of("approved", approved), null);
     }
 
-    public ResponseEntity<byte[]> getById(long userId, long id) {
-        return get("/bookings/" + id, userId, Map.of());
+    public ResponseEntity<Object> getById(long userId, long id) {
+        return get(API_PREFIX + "/" + id, userId, Map.of());
     }
 
-    public ResponseEntity<byte[]> getByBooker(long userId, BookingState state) {
-        return get("/bookings?state={state}", userId, Map.of("state", state.name()));
+    public ResponseEntity<Object> getByBooker(long userId, BookingState state) {
+        return get(API_PREFIX + "?state={state}", userId, Map.of("state", state.name()));
     }
 
-    public ResponseEntity<byte[]> getByOwner(long userId, BookingState state) {
-        return get("/bookings/owner?state={state}", userId, Map.of("state", state.name()));
+    public ResponseEntity<Object> getByOwner(long userId, BookingState state) {
+        return get(API_PREFIX + "/owner?state={state}", userId, Map.of("state", state.name()));
     }
 }

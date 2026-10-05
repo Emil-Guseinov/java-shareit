@@ -10,27 +10,29 @@ import java.util.Map;
 
 @Service
 public class UserClient extends BaseClient {
+    private static final String API_PREFIX = "/users";
+
     public UserClient(RestTemplate rest) {
         super(rest);
     }
 
-    public ResponseEntity<byte[]> create(UserDto dto) {
-        return post("/users", null, dto);
+    public ResponseEntity<Object> create(UserDto dto) {
+        return post(API_PREFIX, null, dto);
     }
 
-    public ResponseEntity<byte[]> update(long id, UserDto dto) {
-        return patch("/users/" + id, null, Map.of(), dto);
+    public ResponseEntity<Object> update(long id, UserDto dto) {
+        return patch(API_PREFIX + "/" + id, null, Map.of(), dto);
     }
 
-    public ResponseEntity<byte[]> getById(long id) {
-        return get("/users/" + id, null, Map.of());
+    public ResponseEntity<Object> getById(long id) {
+        return get(API_PREFIX + "/" + id, null, Map.of());
     }
 
-    public ResponseEntity<byte[]> getAll() {
-        return get("/users", null, Map.of());
+    public ResponseEntity<Object> getAll() {
+        return get(API_PREFIX, null, Map.of());
     }
 
-    public ResponseEntity<byte[]> remove(long id) {
-        return delete("/users/" + id);
+    public ResponseEntity<Object> remove(long id) {
+        return delete(API_PREFIX + "/" + id);
     }
 }

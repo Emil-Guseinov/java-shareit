@@ -17,23 +17,23 @@ public class ItemRequestController {
     private final ItemRequestClient requestClient;
 
     @PostMapping
-    public ResponseEntity<byte[]> create(@RequestHeader(USER_ID_HEADER) @Positive long userId,
+    public ResponseEntity<Object> create(@RequestHeader(USER_ID_HEADER) @Positive long userId,
                                          @Valid @RequestBody ItemRequestCreateDto dto) {
         return requestClient.create(userId, dto);
     }
 
     @GetMapping
-    public ResponseEntity<byte[]> getOwn(@RequestHeader(USER_ID_HEADER) @Positive long userId) {
+    public ResponseEntity<Object> getOwn(@RequestHeader(USER_ID_HEADER) @Positive long userId) {
         return requestClient.getOwn(userId);
     }
 
     @GetMapping("/all")
-    public ResponseEntity<byte[]> getOthers(@RequestHeader(USER_ID_HEADER) @Positive long userId) {
+    public ResponseEntity<Object> getOthers(@RequestHeader(USER_ID_HEADER) @Positive long userId) {
         return requestClient.getOthers(userId);
     }
 
     @GetMapping("/{requestId}")
-    public ResponseEntity<byte[]> getById(@RequestHeader(USER_ID_HEADER) @Positive long userId, @PathVariable @Positive long requestId) {
+    public ResponseEntity<Object> getById(@RequestHeader(USER_ID_HEADER) @Positive long userId, @PathVariable @Positive long requestId) {
         return requestClient.getById(userId, requestId);
     }
 }

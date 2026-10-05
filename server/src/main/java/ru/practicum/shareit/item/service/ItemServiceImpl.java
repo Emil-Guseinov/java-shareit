@@ -15,6 +15,7 @@ import ru.practicum.shareit.item.dto.BookingShortDto;
 import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.CommentRequestDto;
 import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.item.dto.ItemRequestDto;
 import ru.practicum.shareit.item.dto.ItemResponseDto;
 import ru.practicum.shareit.item.mapper.CommentMapper;
 import ru.practicum.shareit.item.mapper.ItemMapper;
@@ -44,7 +45,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     @Transactional
-    public ItemDto create(long userId, ItemDto dto) {
+    public ItemDto create(long userId, ItemRequestDto dto) {
         User owner = getUserOrThrow(userId);
         Item item = ItemMapper.toModel(dto, owner);
         if (dto.getRequestId() != null) {
@@ -56,7 +57,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     @Transactional
-    public ItemDto update(long userId, long itemId, ItemDto dto) {
+    public ItemDto update(long userId, long itemId, ItemRequestDto dto) {
         requireUser(userId);
         Item item = itemRepository.findLockedById(itemId)
                 .orElseThrow(() -> new NotFoundException("Вещь с id=" + itemId + " не найдена"));

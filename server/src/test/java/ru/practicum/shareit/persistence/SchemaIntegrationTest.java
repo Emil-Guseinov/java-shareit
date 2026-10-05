@@ -11,14 +11,17 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.booking.BookingStatus;
 import ru.practicum.shareit.item.Comment;
 import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.request.ItemRequest;
 import ru.practicum.shareit.support.AbstractIntegrationTest;
 import ru.practicum.shareit.user.User;
 
-import javax.sql.DataSource;
 import java.sql.Timestamp;
+import javax.sql.DataSource;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -90,5 +93,24 @@ class SchemaIntegrationTest extends AbstractIntegrationTest {
         assertFalse(bookings.existsById(bookingId));
         assertFalse(comments.existsById(commentId));
         assertTrue(users.existsById(booker.getId()));
+    }
+
+    @Test
+    void deletingRequesterPreservesOtherOwnersReply() {
+        User requester = user("Заказчик");
+        User owner = user("Владелец");
+        ItemRequest request = new ItemRequest(null, "Нужна дрель", requester, NOW);
+        entityManager.persist(request);
+        Item reply = new Item(null, "Дрель", "Описание", true, owner, request);
+        entityManager.persist(reply);
+        entityManager.flush();
+        entityManager.remove(requester);
+        entityManager.flush();
+        entityManager.clear();
+        assertNull(entityManager.find(ItemRequest.class, request.getId()));
+        Item stored = entityManager.find(Item.class, reply.getId());
+        assertNotNull(stored);
+        assertEquals(owner.getId(), stored.getOwner().getId());
+        assertNull(stored.getRequest());
     }
 }

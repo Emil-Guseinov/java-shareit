@@ -16,23 +16,23 @@ public abstract class BaseClient {
         this.rest = rest;
     }
 
-    protected ResponseEntity<byte[]> get(String path, Long userId, Map<String, ?> parameters) {
+    protected ResponseEntity<Object> get(String path, Long userId, Map<String, ?> parameters) {
         return send(HttpMethod.GET, path, userId, parameters, null);
     }
 
-    protected ResponseEntity<byte[]> post(String path, Long userId, Object body) {
+    protected ResponseEntity<Object> post(String path, Long userId, Object body) {
         return send(HttpMethod.POST, path, userId, Map.of(), body);
     }
 
-    protected ResponseEntity<byte[]> patch(String path, Long userId, Map<String, ?> parameters, Object body) {
+    protected ResponseEntity<Object> patch(String path, Long userId, Map<String, ?> parameters, Object body) {
         return send(HttpMethod.PATCH, path, userId, parameters, body);
     }
 
-    protected ResponseEntity<byte[]> delete(String path) {
+    protected ResponseEntity<Object> delete(String path) {
         return send(HttpMethod.DELETE, path, null, Map.of(), null);
     }
 
-    private ResponseEntity<byte[]> send(HttpMethod method, String path, Long userId,
+    private ResponseEntity<Object> send(HttpMethod method, String path, Long userId,
                                         Map<String, ?> parameters, Object body) {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(List.of(MediaType.APPLICATION_JSON));
@@ -43,8 +43,8 @@ public abstract class BaseClient {
             headers.set("X-Sharer-User-Id", userId.toString());
         }
         try {
-            ResponseEntity<byte[]> result = rest.exchange(path, method,
-                    new HttpEntity<>(body, headers), byte[].class, parameters);
+            ResponseEntity<Object> result = rest.exchange(path, method,
+                    new HttpEntity<>(body, headers), Object.class, parameters);
             return response(result.getStatusCode(), result.getHeaders(), result.getBody());
         } catch (RestClientResponseException exception) {
             return response(exception.getStatusCode(), exception.getResponseHeaders(),
@@ -54,7 +54,7 @@ public abstract class BaseClient {
         }
     }
 
-    private ResponseEntity<byte[]> response(HttpStatusCode status, HttpHeaders source, byte[] body) {
+    private ResponseEntity<Object> response(HttpStatusCode status, HttpHeaders source, Object body) {
         HttpHeaders headers = new HttpHeaders();
         if (source != null) {
             for (String name : List.of(HttpHeaders.CONTENT_TYPE, HttpHeaders.ALLOW, HttpHeaders.RETRY_AFTER)) {
@@ -64,7 +64,6 @@ public abstract class BaseClient {
                 }
             }
         }
-        // Передаём JSON без повторного разбора: не меняем даты, числа и тело ошибки сервера.
         return new ResponseEntity<>(body, headers, status);
     }
 }

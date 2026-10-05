@@ -9,9 +9,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ItemDto {
-    private Long id;
-
+public class ItemRequestDto {
     private String name;
 
     private String description;
@@ -20,7 +18,7 @@ public class ItemDto {
 
     private Long requestId;
 
-    public ItemDto(Long id, String name, String description, Boolean available) {
-        this(id, name, description, available, null);
+    public ItemRequestDto(String name, String description, Boolean available) {
+        this(name, description, available, null);
     }
 }

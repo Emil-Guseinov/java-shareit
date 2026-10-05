@@ -10,23 +10,25 @@ import java.util.Map;
 
 @Service
 public class ItemRequestClient extends BaseClient {
+    private static final String API_PREFIX = "/requests";
+
     public ItemRequestClient(RestTemplate rest) {
         super(rest);
     }
 
-    public ResponseEntity<byte[]> create(long userId, ItemRequestCreateDto dto) {
-        return post("/requests", userId, dto);
+    public ResponseEntity<Object> create(long userId, ItemRequestCreateDto dto) {
+        return post(API_PREFIX, userId, dto);
     }
 
-    public ResponseEntity<byte[]> getOwn(long userId) {
-        return get("/requests", userId, Map.of());
+    public ResponseEntity<Object> getOwn(long userId) {
+        return get(API_PREFIX, userId, Map.of());
     }
 
-    public ResponseEntity<byte[]> getOthers(long userId) {
-        return get("/requests/all", userId, Map.of());
+    public ResponseEntity<Object> getOthers(long userId) {
+        return get(API_PREFIX + "/all", userId, Map.of());
     }
 
-    public ResponseEntity<byte[]> getById(long userId, long id) {
-        return get("/requests/" + id, userId, Map.of());
+    public ResponseEntity<Object> getById(long userId, long id) {
+        return get(API_PREFIX + "/" + id, userId, Map.of());
     }
 }

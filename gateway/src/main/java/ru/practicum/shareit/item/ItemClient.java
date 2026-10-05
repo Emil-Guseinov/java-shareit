@@ -5,37 +5,39 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import ru.practicum.shareit.client.BaseClient;
 import ru.practicum.shareit.item.dto.CommentRequestDto;
-import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.item.dto.ItemRequestDto;
 
 import java.util.Map;
 
 @Service
 public class ItemClient extends BaseClient {
+    private static final String API_PREFIX = "/items";
+
     public ItemClient(RestTemplate rest) {
         super(rest);
     }
 
-    public ResponseEntity<byte[]> create(long userId, ItemDto dto) {
-        return post("/items", userId, dto);
+    public ResponseEntity<Object> create(long userId, ItemRequestDto dto) {
+        return post(API_PREFIX, userId, dto);
     }
 
-    public ResponseEntity<byte[]> update(long userId, long id, ItemDto dto) {
-        return patch("/items/" + id, userId, Map.of(), dto);
+    public ResponseEntity<Object> update(long userId, long id, ItemRequestDto dto) {
+        return patch(API_PREFIX + "/" + id, userId, Map.of(), dto);
     }
 
-    public ResponseEntity<byte[]> getById(long userId, long id) {
-        return get("/items/" + id, userId, Map.of());
+    public ResponseEntity<Object> getById(long userId, long id) {
+        return get(API_PREFIX + "/" + id, userId, Map.of());
     }
 
-    public ResponseEntity<byte[]> getByOwner(long userId) {
-        return get("/items", userId, Map.of());
+    public ResponseEntity<Object> getByOwner(long userId) {
+        return get(API_PREFIX, userId, Map.of());
     }
 
-    public ResponseEntity<byte[]> search(long userId, String text) {
-        return get("/items/search?text={text}", userId, Map.of("text", text));
+    public ResponseEntity<Object> search(long userId, String text) {
+        return get(API_PREFIX + "/search?text={text}", userId, Map.of("text", text));
     }
 
-    public ResponseEntity<byte[]> addComment(long userId, long id, CommentRequestDto dto) {
-        return post("/items/" + id + "/comment", userId, dto);
+    public ResponseEntity<Object> addComment(long userId, long id, CommentRequestDto dto) {
+        return post(API_PREFIX + "/" + id + "/comment", userId, dto);
     }
 }
