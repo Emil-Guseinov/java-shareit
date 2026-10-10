@@ -1,8 +1,17 @@
 services:
-  server:
-    build: .
+  gateway:
+    build: gateway
     ports:
       - "8080:8080"
+    depends_on:
+      - server
+    environment:
+      SHAREIT_SERVER_URL: http://server:9090
+
+  server:
+    build: server
+    ports:
+      - "127.0.0.1:9090:9090"
     depends_on:
       db:
         condition: service_healthy
